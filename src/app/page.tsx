@@ -65,9 +65,9 @@ export default async function Home() {
               {content.featuredDestinations.title}
             </h2>
             <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {content.featuredDestinations.destinations.map((destination) => (
+              {content.featuredDestinations.destinations.map((destination, index) => (
                 <Link
-                  key={destination.url}
+                  key={index}
                   href={destination.url}
                   className="group relative bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
                 >

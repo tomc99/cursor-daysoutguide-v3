@@ -11,14 +11,14 @@ export default function Footer({ content }: FooterProps) {
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Footer Sections */}
-          {content.sections.map((section) => (
-            <div key={section.title}>
+          {content.sections.map((section, index) => (
+            <div key={`${section.title}-${index}`}>
               <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
                 {section.title}
               </h3>
               <ul className="mt-4 space-y-4">
-                {section.links.map((link) => (
-                  <li key={link.url}>
+                {section.links.map((link, index) => (
+                  <li key={`${link.url}-${index}`}>
                     <Link
                       href={link.url}
                       className="text-base text-gray-300 hover:text-white"
@@ -35,9 +35,9 @@ export default function Footer({ content }: FooterProps) {
         {/* Social Links */}
         <div className="mt-8 border-t border-gray-700 pt-8">
           <div className="flex justify-center space-x-6">
-            {content.socialLinks.map((social) => (
+            {content.socialLinks.map((social, index) => (
               <a
-                key={social.platform}
+                key={`${social.platform}-${index}`}
                 href={social.url}
                 className="text-gray-400 hover:text-gray-300"
                 target="_blank"

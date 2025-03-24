@@ -1,4 +1,4 @@
-import { HomePageContent, PageMetadata, HeaderContent, FooterContent, NavigationItem } from '@/types/content';
+import { HomePageContent, HeaderContent } from '@/types/content';
 
 const CMS_API_BASE_URL = process.env.NEXT_PUBLIC_CMS_API_URL;
 const CMS_CLIENT_ID = process.env.CMS_CLIENT_ID;
@@ -8,6 +8,7 @@ interface CMSResponse<T> {
   key: string;
   contentType: string;
   properties: T;
+  routeSegment: string;
 }
 
 interface TokenResponse {
@@ -15,6 +16,12 @@ interface TokenResponse {
   token_type: string;
   expires_in: number;
 }
+
+type HomePageCmsContent = Omit<HomePageContent, 'header'> & {
+  header: Omit<HeaderContent, 'logo'> & {
+    logo: string;
+  };
+};
 
 class CMSService {
   private static instance: CMSService;
@@ -84,47 +91,86 @@ class CMSService {
     return response.json();
   }
 
-  private async resolveReference<T>(reference: string): Promise<T> {
+  private async resolveReference<T>(referenceOrKey: string): Promise<CMSResponse<T>> {
+    // Strip the cms://content/ prefix if it exists
+    const contentKey = referenceOrKey.replace('cms://content/', '');
+
     // Check cache first
-    const cachedContent = this.contentCache.get(reference);
+    const cachedContent = this.contentCache.get(contentKey);
     if (cachedContent) {
-      return cachedContent as T;
+      return cachedContent as CMSResponse<T>;
     }
 
     // Fetch from CMS
-    const content = await this.fetchFromCMS<CMSResponse<T>>(`/_cms/preview2/content/${reference}`);
-    this.contentCache.set(reference, content.properties);
-    return content.properties;
+    const content = await this.getLatestPublishedVersion<T>(contentKey);
+    this.contentCache.set(contentKey, content);
+    return content;
+  }
+
+  private async getLatestPublishedVersion<T>(contentKey: string): Promise<CMSResponse<T>> {
+    // First get the published versions
+    const versions = await this.fetchFromCMS<{
+      items: Array<{
+        key: string;
+        version: string;
+        status: string;
+      }>;
+    }>(`/_cms/preview2/content/${contentKey}/versions?statuses=published`);
+
+    if (!versions.items || versions.items.length === 0) {
+      throw new Error(`No published version found for content: ${contentKey}`);
+    }
+
+    // Get the latest published version
+    const latestVersion = versions.items[versions.items.length - 1];
+
+    // Fetch the content with the latest published version
+    const content = await this.fetchFromCMS<CMSResponse<T>>(
+      `/_cms/preview2/content/${contentKey}/versions/${latestVersion.version}`
+    );
+    return content;
+  }
+
+  private async getImageSrc(imageReference: string): Promise<string> {
+    const image = await this.resolveReference(imageReference);
+    const imageSrcString = `${CMS_API_BASE_URL}/globalassets/${image?.routeSegment}`;
+    return imageSrcString;
   }
 
   public async getHomeContent(): Promise<HomePageContent> {
     try {
-      // First get the published versions
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const versions = await this.fetchFromCMS<any>('/_cms/preview2/content/532d21f496944221b01cf9dbcff4f35c/versions?statuses=published');
-      if (!versions.items || versions.items.length === 0) {
-        throw new Error('No published version found for homepage');
-      }
-
-      // Get the latest published version
-      const latestVersion = versions.items[versions.items.length - 1];
-
-      // Fetch the main homepage content with the latest published version
-      const homepage = await this.fetchFromCMS<CMSResponse<{
-        metadata: { title: string, description: string, keywords: string[] };
-        header: { logo: { src: string, alt: string }, navigation: NavigationItem[], ctaButton?: { text: string, url: string } };
-        hero: { title: string, subtitle: string, backgroundImage: string, ctaButton: { text: string, url: string } };
-        featuredDestinations: { title: string, destinations: { title: string, description: string, image: string, url: string }[] };
-        footer: { sections: { title: string, links: { title: string, url: string }[] }[], copyright: string, socialLinks: { platform: string, url: string, icon: string }[] };
-      }>>(`/_cms/preview2/content/532d21f496944221b01cf9dbcff4f35c/versions/${latestVersion.version}`);
-
-      return {
-        metadata: homepage?.properties.metadata,
-        header: homepage?.properties.header,
-        hero: homepage?.properties.hero,
-        featuredDestinations: homepage?.properties.featuredDestinations,
-        footer: homepage?.properties.footer,
+      const homePageKey = '532d21f496944221b01cf9dbcff4f35c';
+      const homepageResponse = await this.getLatestPublishedVersion<HomePageCmsContent>(homePageKey);
+      const homepage: HomePageContent = {
+        metadata: homepageResponse.properties.metadata,
+        header: {
+          logo: {
+            src: await this.getImageSrc(homepageResponse.properties.header.logo),
+            alt: JSON.stringify(homepageResponse.properties.header.logo),
+          },
+          navigation: homepageResponse.properties.header.navigation, 
+        },
+        footer: homepageResponse.properties.footer,
+        hero: {
+          title: homepageResponse.properties.hero.title,
+          subtitle: homepageResponse.properties.hero.subtitle,
+          backgroundImage: await this.getImageSrc(homepageResponse.properties.hero.backgroundImage),
+          ctaButton: homepageResponse.properties.hero.ctaButton,
+        },
+        featuredDestinations: {
+          title: homepageResponse.properties.featuredDestinations.title,
+          destinations: await Promise.all(homepageResponse.properties.featuredDestinations.destinations.map(async (destination) => {
+            return {
+              title: destination.title,
+              description: destination.description,
+              image: await this.getImageSrc(destination.image),
+              url: destination.url,
+            }
+          }))
+        }
       };
+
+      return homepage;
     } catch (error) {
       console.error('Error fetching home content from CMS:', error);
       throw error;
