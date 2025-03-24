@@ -1,6 +1,6 @@
 import { HomePageContent, HeaderContent } from '@/types/content';
 
-const CMS_API_BASE_URL = process.env.NEXT_PUBLIC_CMS_API_URL;
+const CMS_API_BASE_URL = process.env.CMS_API_URL;
 const CMS_CLIENT_ID = process.env.CMS_CLIENT_ID;
 const CMS_CLIENT_SECRET = process.env.CMS_CLIENT_SECRET;
 
