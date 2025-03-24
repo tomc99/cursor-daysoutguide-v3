@@ -1,5 +1,5 @@
 import { HomePageContent } from '@/types/content';
-import { homeContent } from '@/content/home';
+import { cmsService } from './cmsService';
 
 type PageContent = HomePageContent; // Add more page content types as needed
 
@@ -7,10 +7,7 @@ class ContentService {
   private static instance: ContentService;
   private contentCache: Map<string, PageContent> = new Map();
 
-  private constructor() {
-    // Initialize content cache
-    this.contentCache.set('home', homeContent);
-  }
+  private constructor() {}
 
   public static getInstance(): ContentService {
     if (!ContentService.instance) {
@@ -31,9 +28,17 @@ class ContentService {
       return cachedContent;
     }
 
-    // If not in cache, fetch from content directory
+    // If not in cache, fetch from CMS
     try {
-      const content = await import(`@/content/${pageId}`);
+      let content: PageContent;
+      switch (pageId) {
+        case 'home':
+          content = await cmsService.getHomeContent();
+          break;
+        default:
+          throw new Error(`Content not found for page: ${pageId}`);
+      }
+      
       this.contentCache.set(pageId, content);
       return content;
     } catch (error) {
@@ -55,8 +60,7 @@ class ContentService {
    */
   public clearCache(): void {
     this.contentCache.clear();
-    // Reinitialize with home content
-    this.contentCache.set('home', homeContent);
+    cmsService.clearCache();
   }
 }
 

@@ -11,21 +11,10 @@ export const revalidate = 3600;
 
 // Generate metadata for the page
 export async function generateMetadata(): Promise<Metadata> {
-  try {
-    const content = await getHomeContent();
-    
-    return {
-      title: content.metadata.title,
-      description: content.metadata.description,
-      keywords: content.metadata.keywords,
-    };
-  } catch (error) {
-    console.error('Error generating metadata:', error);
-    return {
+  return {
       title: 'Days Out Guide',
       description: 'Discover amazing destinations by train',
     };
-  }
 }
 
 export default async function Home() {

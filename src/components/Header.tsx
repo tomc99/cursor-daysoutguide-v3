@@ -13,6 +13,7 @@ export default function Header({ content }: HeaderProps) {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
+          { content?.logo?.src && content?.logo?.alt &&
             <Image
               src={content.logo.src}
               alt={content.logo.alt}
@@ -20,12 +21,13 @@ export default function Header({ content }: HeaderProps) {
               height={40}
               className="h-8 w-auto"
             />
+          }
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
-            {content.navigation.map((item) => (
-              <div key={item.url} className="relative group">
+            {content.navigation.map((item, index) => (
+              <div key={`${item.url}-${index}`} className="relative group">
                 <Link
                   href={item.url}
                   className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium"
@@ -35,9 +37,9 @@ export default function Header({ content }: HeaderProps) {
                 {item.children && (
                   <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                     <div className="py-1">
-                      {item.children.map((child) => (
+                      {item.children.map((child, index) => (
                         <Link
-                          key={child.url}
+                          key={`${child.url}-${index}`}
                           href={child.url}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
@@ -94,8 +96,8 @@ export default function Header({ content }: HeaderProps) {
       {/* Mobile menu */}
       <div className="md:hidden hidden" id="mobile-menu">
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-          {content.navigation.map((item) => (
-            <div key={item.url}>
+          {content.navigation.map((item, index) => (
+            <div key={`${item.url}-${index}`}>
               <Link
                 href={item.url}
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -104,9 +106,9 @@ export default function Header({ content }: HeaderProps) {
               </Link>
               {item.children && (
                 <div className="pl-6">
-                  {item.children.map((child) => (
+                  {item.children.map((child, index) => (
                     <Link
-                      key={child.url}
+                      key={`${child.url}-${index}`}
                       href={child.url}
                       className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     >
